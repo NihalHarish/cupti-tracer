@@ -340,6 +340,6 @@ void finiTrace()
 {
    // Force flush any remaining activity buffers before termination of the application
    CUPTI_CALL(cuptiActivityFlushAll(1));
-//   CUPTI_CALL(cuptiUnsubscribe(subscriber));
+   CUPTI_CALL(cuptiUnsubscribe(subscriber));
 }
 
