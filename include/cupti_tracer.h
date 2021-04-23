@@ -4,6 +4,7 @@
 #include <cupti.h>
 #include "activity_definitions.h"
 #include <iostream>
+#include "smprofiler_timeline.h"
 
 //libunwind MACRO for local unwind optimization
 #define UNW_LOCAL_ONLY
@@ -33,6 +34,8 @@ static uint64_t start_timestamp;
 static char* phase;
 
 CUpti_SubscriberHandle subscriber;
+
+Timeline& tl = Timeline::getInstance();
 
 
 static void print_activity(CUpti_Activity *record)
@@ -95,6 +98,7 @@ static void print_activity(CUpti_Activity *record)
     {
       const char* kindString = (record->kind == CUPTI_ACTIVITY_KIND_KERNEL) ? "KERNEL" : "CONC KERNEL";
       CUpti_ActivityKernel3 *kernel = (CUpti_ActivityKernel3 *) record;
+      tl.SMRecordEvent(phase, kernel->name, kernel->start, kernel->end - kernel->start,  "X");
       printf("Phase %s %s \"%s\" [ %llu - %llu ] device %u, context %u, stream %u, correlation %u\n",
              phase, kindString,
              kernel->name,
@@ -111,6 +115,7 @@ static void print_activity(CUpti_Activity *record)
   case CUPTI_ACTIVITY_KIND_DRIVER:
     {
       CUpti_ActivityAPI *api = (CUpti_ActivityAPI *) record;
+      tl.SMRecordEvent(phase, "DRIVER", api->start, api->end - api->start,  "X");
       printf("Phase %s DRIVER cbid=%u [ %llu - %llu ] process %u, thread %u, correlation %u\n",
              phase, api->cbid,
              (unsigned long long) (api->start - start_timestamp),
@@ -121,6 +126,7 @@ static void print_activity(CUpti_Activity *record)
   case CUPTI_ACTIVITY_KIND_RUNTIME:
     {
       CUpti_ActivityAPI *api = (CUpti_ActivityAPI *) record;
+      tl.SMRecordEvent(phase, "DRIVER", api->start, api->end - api->start,  "X");
       printf("Phase %s RUNTIME cbid=%u [ %llu - %llu ] process %u, thread %u, correlation %u\n",
              phase, api->cbid,
              (unsigned long long) (api->start - start_timestamp),
@@ -182,6 +188,7 @@ static void print_activity(CUpti_Activity *record)
   case CUPTI_ACTIVITY_KIND_SYNCHRONIZATION:
     {
 	  CUpti_ActivitySynchronization *activity_sync = (CUpti_ActivitySynchronization *) record;
+	  tl.SMRecordEvent(phase, get_sync_events_string(activity_sync->type), activity_sync->start, activity_sync->end - activity_sync->start,  "X");
 	  printf("Phase %s SYNC %s [ %llu, %llu ] contextId %d streamID %d cudaEventId %d correlationId %d\n", 
 			  phase, 
 			  get_sync_events_string(activity_sync->type),
@@ -193,6 +200,18 @@ static void print_activity(CUpti_Activity *record)
 			  activity_sync->correlationId);
           break;
     }
+  case CUPTI_ACTIVITY_KIND_PC_SAMPLING:
+      {
+        CUpti_ActivityPCSampling2 *psRecord = (CUpti_ActivityPCSampling2 *)record;
+
+        printf("source %u, functionId %u, pc 0x%x, corr %u, samples %u \n",
+          psRecord->sourceLocatorId,
+          psRecord->functionId,
+          psRecord->pcOffset,
+          psRecord->correlationId,
+          psRecord->samples);
+        break;
+      }
   default:
     printf("unknown\n");
     break;
@@ -237,14 +256,30 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer,
 
 
 //Callback called on every CUDA API call entry
-static void OnDriverApiEnter(CUpti_CallbackDomain domain, CUpti_CallbackId cbid, const CUpti_CallbackData *cbdata)
+static void OnDriverApiEnter(CUpti_CallbackDomain domain, CUpti_driver_api_trace_cbid cbid, const CUpti_CallbackData *cbdata)
 {
 	// get timestamp
 	uint64_t tsc;
 	if (cuptiDeviceGetTimestamp(cbdata->context, &tsc) == CUPTI_SUCCESS){
 		printf("Enter API callback %llu %s %s \n", (unsigned long long) tsc-start_timestamp, cbdata->symbolName, cbdata->functionName);
 	}
+	//CUpti_driver_api_trace_cbid cbid_new = (CUpti_driver_api_trace_cbid) cbid; 
+        printf("cbid %d", cbid);
+	switch (cbid) {
+	case CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel: 
+		{
+			printf("symbolName %s correlationID %d\n", cbdata->symbolName, cbdata->correlationId);
+			break;
+		}
 
+	case CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel:
+	case CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernelMultiDevice: {
+       	    printf("symbolName %s correlationID %d\n", cbdata->symbolName, cbdata->correlationId);
+	    break;
+     	    }
+	}
+	
+        /***
         // libunwind variables
 	unw_word_t ip;
         unw_cursor_t cursor;
@@ -265,7 +300,7 @@ static void OnDriverApiEnter(CUpti_CallbackDomain domain, CUpti_CallbackId cbid,
       		unw_get_proc_name(&cursor, funcName, sizeof(funcName), NULL);
 		printf("%d 0x%016lx %s\n", count, (unsigned long)ip, funcName);
       		count++;
-    }
+    }***/
 }
 
 //Callback called on every CUDA API call exit
@@ -282,7 +317,7 @@ static void CUPTIAPI trace_callback(void *userdata, CUpti_CallbackDomain domain,
 {
   const CUpti_CallbackData *cbInfo = (CUpti_CallbackData *)cbdata;
   if (cbInfo->callbackSite == CUPTI_API_ENTER){
-	OnDriverApiEnter(domain, cbid, cbInfo);
+	OnDriverApiEnter(domain, (CUpti_driver_api_trace_cbid) cbid, cbInfo);
   }
   else if (cbInfo->callbackSite == CUPTI_API_EXIT)
   {
@@ -311,10 +346,11 @@ initTrace()
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MARKER));
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));  
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION)); 
+//  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_PC_SAMPLING));
 
   // register callback
-  CUPTI_CALL(cuptiSubscribe(&subscriber, (CUpti_CallbackFunc)trace_callback, NULL));
-  CUPTI_CALL(cuptiEnableDomain(1, subscriber,  CUPTI_CB_DOMAIN_RUNTIME_API));
+//  CUPTI_CALL(cuptiSubscribe(&subscriber, (CUpti_CallbackFunc)trace_callback, NULL));
+//  CUPTI_CALL(cuptiEnableDomain(1, subscriber,  CUPTI_CB_DOMAIN_RUNTIME_API));
 //  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OVERHEAD))  
 //  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_FUNCTION)); 
 //  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SOURCE_LOCATOR));
@@ -340,6 +376,6 @@ void finiTrace()
 {
    // Force flush any remaining activity buffers before termination of the application
    CUPTI_CALL(cuptiActivityFlushAll(1));
-   CUPTI_CALL(cuptiUnsubscribe(subscriber));
+  // CUPTI_CALL(cuptiUnsubscribe(subscriber));
 }
 
