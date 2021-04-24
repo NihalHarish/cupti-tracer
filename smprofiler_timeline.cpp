@@ -44,9 +44,10 @@ bool TimelineWriter::open_file_and_init(std::string file_name){
   }
 }
 
+#define UTC (0)
 
 std::string TimelineWriter::create_new_file_path(uint64_t timestamp_utc) {
-  time_t tt = timestamp_utc / MICROS_FACTOR;
+  std::time_t tt = std::time(0);
   struct tm* ptm = gmtime(&tt);
   // Update the current hour as reflected in the folder name.
   cur_hour_ = ptm->tm_hour;
@@ -58,7 +59,6 @@ std::string TimelineWriter::create_new_file_path(uint64_t timestamp_utc) {
 
   // generate folder name
   std:: string timeline_folder_name = base_folder_ + FORWARD_SLASH + BASE_FOLDER_PATH_STR + time_str + FORWARD_SLASH;
-
   // create the base directory for the timeline file.
   size_t pos = 0;
   while(pos != std::string::npos) {
@@ -77,15 +77,14 @@ void TimelineWriter::Initialize(std::string node_id, uint64_t cur_time) {
   // read all the config parameters.
   base_folder_ = "/tmp";
   pid_node_id_ = "1";
-  max_file_size_ = 10000000000;
-  file_close_interval_ = 60000;
-  continuous_fail_count_threshold_ = 3;
+  max_file_size_ = 100000000000;
+  file_close_interval_ = 600000;
+  continuous_fail_count_threshold_ = 4;
   tf_dataloader_start_flag_filepath = base_folder_ +  node_id + "/tf_dataloader_start_flag.tmp";
   tf_dataloader_end_flag_filepath = base_folder_ + node_id + "/tf_dataloader_end_flag.tmp";
   healthy_ = true; 
 
   start_time_since_epoch_utc_micros_ = cur_time;
-  
   // Initialize the last_file_close_time and last_event_end_time to start_time_
   // These values will get updated as the timeline gets written.
   last_file_close_time_ = start_time_since_epoch_utc_micros_;
@@ -93,9 +92,10 @@ void TimelineWriter::Initialize(std::string node_id, uint64_t cur_time) {
   
   // Get the hour for start time.
   time_t ts = last_file_close_time_;
-  struct tm * current_event_utc_tm = gmtime(&ts);
-  cur_hour_ = current_event_utc_tm->tm_hour;
-
+  std::time_t now= std::time(0);
+  std::tm* current_event_utc_tm = std::gmtime(&now);
+  //struct tm * current_event_utc_tm = gmtime(&ts);
+  cur_hour_ = current_event_utc_tm->tm_hour ;
   // This is the temporary current file that gets written to. While rotating the file we will close this file,
   // rename it to filename with appropriate timestamp, truncate this file and restart writing to it.
   current_tmp_filename_ = base_folder_ + "/framework/" + std::to_string(getpid()) + SMDEBUG_TEMP_PATH_SUFFIX;
@@ -169,7 +169,6 @@ void TimelineWriter::close_and_rename_file() {
   struct timeval tv;
   gettimeofday(&tv,NULL);
   uint64_t cur_time = (1000000 * tv.tv_sec) + tv.tv_usec;
-  //uint64_t cur_time = EnvTime::NowMicros();
   file_.flush();
   file_.close();
 
@@ -187,9 +186,9 @@ void TimelineWriter::DoWriteEvent(const TimelineRecord& r) {
           //2.1 close existing file
           //2.2 file_name = create new file for event()// 
           //2.3 if !open_file_and_init(file_name) : return 
-  if (file_.is_open() && shouldRotateToNew(r.event_end_ts_micros_since_epoch_utc)) {
-    close_and_rename_file();
-  }
+  //if (file_.is_open() && shouldRotateToNew(r.event_end_ts_micros_since_epoch_utc)) {
+ //   close_and_rename_file();
+ // }
 
   // If no file is open, create a new file, open and initialize it.
   if (!file_.is_open()) {
@@ -300,8 +299,9 @@ void TimelineWriter::WriterLoop() {
     update_dataloader_collection_status();
     struct timeval tv;
     gettimeofday(&tv,NULL); 
-    uint64_t cur_time = (1000000 * tv.tv_sec) + tv.tv_usec;//EnvTime::NowMicros();
+    uint64_t cur_time = (1000000 * tv.tv_sec) + tv.tv_usec;
     if (file_.is_open() && shouldRotateToNew(cur_time)) {
+      printf("rotate file\n");
       close_and_rename_file();
     }
     TimelineRecord r;
@@ -357,8 +357,7 @@ void Timeline::Initialize() {
   }
   struct timeval tv;
   gettimeofday(&tv,NULL);
-  uint64_t start_time_ = (1000000 * tv.tv_sec) + tv.tv_usec;
-  //start_time_ = EnvTime::NowMicros();
+  start_time_ = (1000000 * tv.tv_sec) + tv.tv_usec;
   
   // create the config reader instance.
   node_id = "algo-1";
@@ -377,7 +376,7 @@ void Timeline::Initialize() {
 // long long ts_micros is start_time for duration event
 // phse for this is defaulted to 'X'
 void Timeline::SMRecordEvent(const std::string training_phase,
-                          const std::string op_name, uint64_t start_ts, uint64_t duration, const std::string args, char event_type) {
+                          const std::string op_name, uint64_t start_ts, uint64_t duration, const std::string args, char event_type){//, uint64_t tid) {
   if (!initialized_ || !writer_->IsHealthy()) {
     // Timeline Writer is an unhealthy state. Dropping the current event.
 //    return;
@@ -405,7 +404,7 @@ void Timeline::SMRecordEvent(const std::string training_phase,
   ss.append(std::to_string(threadid));
   //writer_->EnqueueWriteEvent(training_phase, event_type, op_name, ss,
   //                           rel_ts_micros, threadid, pid, duration);
-  writer_->EnqueueWriteEvent(training_phase, event_type, op_name, ss, start_ts, threadid, pid, duration);
+  writer_->EnqueueWriteEvent(training_phase, event_type, op_name, ss, start_ts-start_time_, threadid, pid, duration);
 }
 
 Timeline&  Timeline::getInstance() {

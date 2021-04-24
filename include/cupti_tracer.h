@@ -98,7 +98,7 @@ static void print_activity(CUpti_Activity *record)
     {
       const char* kindString = (record->kind == CUPTI_ACTIVITY_KIND_KERNEL) ? "KERNEL" : "CONC KERNEL";
       CUpti_ActivityKernel3 *kernel = (CUpti_ActivityKernel3 *) record;
-      tl.SMRecordEvent(phase, kernel->name, kernel->start, kernel->end - kernel->start,  "X");
+      tl.SMRecordEvent(phase, kernel->name, kernel->start/1000.0, (kernel->end - kernel->start)/1000,  "X");
       printf("Phase %s %s \"%s\" [ %llu - %llu ] device %u, context %u, stream %u, correlation %u\n",
              phase, kindString,
              kernel->name,
@@ -115,7 +115,7 @@ static void print_activity(CUpti_Activity *record)
   case CUPTI_ACTIVITY_KIND_DRIVER:
     {
       CUpti_ActivityAPI *api = (CUpti_ActivityAPI *) record;
-      tl.SMRecordEvent(phase, "DRIVER", api->start, api->end - api->start,  "X");
+      tl.SMRecordEvent(phase, "DRIVER", api->start/1000, (api->end - api->start)/1000,  "X");
       printf("Phase %s DRIVER cbid=%u [ %llu - %llu ] process %u, thread %u, correlation %u\n",
              phase, api->cbid,
              (unsigned long long) (api->start - start_timestamp),
@@ -126,7 +126,8 @@ static void print_activity(CUpti_Activity *record)
   case CUPTI_ACTIVITY_KIND_RUNTIME:
     {
       CUpti_ActivityAPI *api = (CUpti_ActivityAPI *) record;
-      tl.SMRecordEvent(phase, "DRIVER", api->start, api->end - api->start,  "X");
+      printf("%llu \n", api->start);
+      tl.SMRecordEvent(phase, "RUNTIME", api->start/1000, (api->end - api->start)/1000,  "X");
       printf("Phase %s RUNTIME cbid=%u [ %llu - %llu ] process %u, thread %u, correlation %u\n",
              phase, api->cbid,
              (unsigned long long) (api->start - start_timestamp),
@@ -188,7 +189,7 @@ static void print_activity(CUpti_Activity *record)
   case CUPTI_ACTIVITY_KIND_SYNCHRONIZATION:
     {
 	  CUpti_ActivitySynchronization *activity_sync = (CUpti_ActivitySynchronization *) record;
-	  tl.SMRecordEvent(phase, get_sync_events_string(activity_sync->type), activity_sync->start, activity_sync->end - activity_sync->start,  "X");
+	  tl.SMRecordEvent(phase, get_sync_events_string(activity_sync->type), activity_sync->start/1000, (activity_sync->end - activity_sync->start),  "X");//, activity_sync->contextId);
 	  printf("Phase %s SYNC %s [ %llu, %llu ] contextId %d streamID %d cudaEventId %d correlationId %d\n", 
 			  phase, 
 			  get_sync_events_string(activity_sync->type),
