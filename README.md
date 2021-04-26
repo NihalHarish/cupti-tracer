@@ -2,6 +2,8 @@
 
 #### Install dependencies
 ```
+sudo yum install perf
+sudo apt-get install python3-dev
 sudo apt-get install libunwind-dev
 ```
 #### Compile
