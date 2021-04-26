@@ -39,7 +39,7 @@ public:
                          long ts_micros, pthread_t threadid, pid_t pid, long duration=0);
   ~TimelineWriter();
   uint64_t start_time_since_epoch_utc_micros_;
-  
+
 
 private:
   void DoWriteEvent(const TimelineRecord& r);
@@ -71,7 +71,7 @@ private:
   // Timeline file.
   std::fstream file_;
   // tensor_Existed_ is to find if this is first write in the file
-  // see smprofiler_timeline.cc::DoWriteEvent 
+  // see smprofiler_timeline.cc::DoWriteEvent
   bool tensor_existed_ = false;
   uint64_t last_file_close_time_;
   int cur_hour_;
@@ -99,7 +99,7 @@ enum TimelineState { UNKNOWN, NEGOTIATING, TOP_LEVEL, ACTIVITY };
 // https://github.com/catapult-project/catapult/tree/master/tracing
 class Timeline {
 public:
-  
+
   static Timeline& getInstance();
   Timeline(Timeline const&) = delete;
   void operator=(Timeline const&)  = delete;
@@ -110,7 +110,7 @@ public:
   uint64_t start_time_;
 
 private:
-  
+
   Timeline();
   Timeline(Timeline&&) = default;
   // Boolean flag indicating whether Timeline was initialized (and thus should
@@ -123,4 +123,3 @@ private:
   // Timeline writer.
   std::unique_ptr<TimelineWriter> writer_;
 };
-

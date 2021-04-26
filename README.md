@@ -4,7 +4,7 @@
 ```
 sudo apt-get install libunwind-dev
 ```
-#### Compile 
+#### Compile
 ```
 nvcc -c --ptxas-options=-v --compiler-options '-fPIC'  -I./include/ -I../../../../include -I../../include -I/usr/include/python3.6/ smprofiler.cpp
 nvcc -c --ptxas-options=-v --compiler-options '-fPIC'  -I./include/ -I../../../../include -I../../include -I/usr/include/python3.6/ smprofiler_timeline.cpp
@@ -22,4 +22,4 @@ smprofiler.start('training')
 smprofiler.stop()
 
 ```
-For an example check out ![train.py](https://github.com/NRauschmayr/cupti-tracer/blob/main/train.py) 
+For an example check out ![train.py](https://github.com/NRauschmayr/cupti-tracer/blob/main/train.py)

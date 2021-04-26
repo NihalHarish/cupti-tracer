@@ -6,7 +6,7 @@
 #include <thread>
 #include <pthread.h>
 #include <sys/types.h>
-#include <sys/stat.h> 
+#include <sys/stat.h>
 #include <regex>
 
 bool TimelineWriter::open_file_and_init(std::string file_name){
@@ -73,7 +73,7 @@ std::string TimelineWriter::create_new_file_path(uint64_t timestamp_utc) {
 }
 
 void TimelineWriter::Initialize(std::string node_id, uint64_t cur_time) {
-  
+
   // read all the config parameters.
   base_folder_ = "/tmp";
   pid_node_id_ = "1";
@@ -82,14 +82,14 @@ void TimelineWriter::Initialize(std::string node_id, uint64_t cur_time) {
   continuous_fail_count_threshold_ = 4;
   tf_dataloader_start_flag_filepath = base_folder_ +  node_id + "/tf_dataloader_start_flag.tmp";
   tf_dataloader_end_flag_filepath = base_folder_ + node_id + "/tf_dataloader_end_flag.tmp";
-  healthy_ = true; 
+  healthy_ = true;
 
   start_time_since_epoch_utc_micros_ = cur_time;
   // Initialize the last_file_close_time and last_event_end_time to start_time_
   // These values will get updated as the timeline gets written.
   last_file_close_time_ = start_time_since_epoch_utc_micros_;
   last_event_end_time_ = start_time_since_epoch_utc_micros_;
-  
+
   // Get the hour for start time.
   time_t ts = last_file_close_time_;
   std::time_t now= std::time(0);
@@ -99,7 +99,7 @@ void TimelineWriter::Initialize(std::string node_id, uint64_t cur_time) {
   // This is the temporary current file that gets written to. While rotating the file we will close this file,
   // rename it to filename with appropriate timestamp, truncate this file and restart writing to it.
   current_tmp_filename_ = base_folder_ + "/framework/" + std::to_string(getpid()) + SMDEBUG_TEMP_PATH_SUFFIX;
-  
+
   // Spawn writer thread.
   writer_thread = std::thread(&TimelineWriter::WriterLoop, this);
 }
@@ -149,7 +149,7 @@ bool TimelineWriter::shouldRotateToNew(uint64_t timestamp_micros_since_utc){
   if (current_event_utc_tm.tm_hour != cur_hour_) {
     return true;
   }
-  
+
   // check size of file.
   struct stat stat_buf;
   stat(current_tmp_filename_.c_str(), &stat_buf);
@@ -178,14 +178,14 @@ void TimelineWriter::close_and_rename_file() {
 }
 
 void TimelineWriter::DoWriteEvent(const TimelineRecord& r) {
-  // if existing file is > seconds old or size > MB , close this , create new file with new path interval 
+  // if existing file is > seconds old or size > MB , close this , create new file with new path interval
   // NOTE: need to save existing metadata strings in new file, so all strings for tensorIdx need to be saved in memory
-  // This will make sure that all files are self readable , file closing and opening can be done at the end of function before we do file_seek 
-  // 1. 1.0 get date and hour from r.absolutetimestamp 
-      // 2.0 if shouldRotateToNew() : // checks if current file size has exceeded limit or event_ts is more than currnt hour, store_new hr to cur hr, 
+  // This will make sure that all files are self readable , file closing and opening can be done at the end of function before we do file_seek
+  // 1. 1.0 get date and hour from r.absolutetimestamp
+      // 2.0 if shouldRotateToNew() : // checks if current file size has exceeded limit or event_ts is more than currnt hour, store_new hr to cur hr,
           //2.1 close existing file
-          //2.2 file_name = create new file for event()// 
-          //2.3 if !open_file_and_init(file_name) : return 
+          //2.2 file_name = create new file for event()//
+          //2.3 if !open_file_and_init(file_name) : return
   //if (file_.is_open() && shouldRotateToNew(r.event_end_ts_micros_since_epoch_utc)) {
  //   close_and_rename_file();
  // }
@@ -204,7 +204,7 @@ void TimelineWriter::DoWriteEvent(const TimelineRecord& r) {
     }
   }
 
-  // Note: Below this we expect that file_ is open pointing to right file where this event needs to be written 
+  // Note: Below this we expect that file_ is open pointing to right file where this event needs to be written
 
   if (r.event_end_ts_micros_since_epoch_utc > last_event_end_time_) {
     last_event_end_time_ = r.event_end_ts_micros_since_epoch_utc;
@@ -298,7 +298,7 @@ void TimelineWriter::WriterLoop() {
   while (healthy_) {
     update_dataloader_collection_status();
     struct timeval tv;
-    gettimeofday(&tv,NULL); 
+    gettimeofday(&tv,NULL);
     uint64_t cur_time = (1000000 * tv.tv_sec) + tv.tv_usec;
     if (file_.is_open() && shouldRotateToNew(cur_time)) {
       printf("rotate file\n");
@@ -306,7 +306,7 @@ void TimelineWriter::WriterLoop() {
     }
     TimelineRecord r;
     {
-      
+
       std::lock_guard<std::recursive_mutex> guard(mutex_);
       if(record_queue_.empty()){
         std::this_thread::yield();
@@ -347,8 +347,8 @@ void TimelineWriter::update_dataloader_collection_status() {
 }
 
 bool TimelineWriter::file_exists(std::string filename) {
-  struct stat buffer;   
-  return (stat (filename.c_str(), &buffer) == 0); 
+  struct stat buffer;
+  return (stat (filename.c_str(), &buffer) == 0);
 }
 
 void Timeline::Initialize() {
@@ -358,7 +358,7 @@ void Timeline::Initialize() {
   struct timeval tv;
   gettimeofday(&tv,NULL);
   start_time_ = (1000000 * tv.tv_sec) + tv.tv_usec;
-  
+
   // create the config reader instance.
   node_id = "algo-1";
 
@@ -394,7 +394,7 @@ void Timeline::SMRecordEvent(const std::string training_phase,
   //auto duration = now - start_ts;
   // relative time from start of the process.
   //auto rel_ts_micros = start_ts - start_time_;
-  // get pid of writing process and tid 
+  // get pid of writing process and tid
   pid_t pid = getpid();
   pthread_t threadid = pthread_self();
   std::string ss;
@@ -417,10 +417,9 @@ Timeline&  Timeline::getInstance() {
 Timeline::Timeline(){
   writer_ = std::make_unique<TimelineWriter>();
   Initialize();
-} 
+}
 
 static bool __smdebug_profiler_initialized__1234_ = []()->bool{
   Timeline::getInstance();
   return true;
   }();
-

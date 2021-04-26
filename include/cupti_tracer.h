@@ -142,7 +142,7 @@ static void print_activity(CUpti_Activity *record)
       {
       case CUPTI_ACTIVITY_OBJECT_CONTEXT:
         printf("Phase %s NAME  %s %u %s id %u, name %s\n",
-               phase, 
+               phase,
 	       get_activity_object_string(name->objectKind),
                get_activity_object_id_string(name->objectKind, &name->objectId),
                get_activity_object_string(CUPTI_ACTIVITY_OBJECT_DEVICE),
@@ -151,7 +151,7 @@ static void print_activity(CUpti_Activity *record)
         break;
       case CUPTI_ACTIVITY_OBJECT_STREAM:
         printf("Phase %s NAME %s %u %s %u %s id %u, name %s\n",
-               phase, 
+               phase,
 	       get_activity_object_string(name->objectKind),
                get_activity_object_id_string(name->objectKind, &name->objectId),
                get_activity_object_string(CUPTI_ACTIVITY_OBJECT_CONTEXT),
@@ -190,8 +190,8 @@ static void print_activity(CUpti_Activity *record)
     {
 	  CUpti_ActivitySynchronization *activity_sync = (CUpti_ActivitySynchronization *) record;
 	  tl.SMRecordEvent(phase, get_sync_events_string(activity_sync->type), activity_sync->start/1000, (activity_sync->end - activity_sync->start),  "X");//, activity_sync->contextId);
-	  printf("Phase %s SYNC %s [ %llu, %llu ] contextId %d streamID %d cudaEventId %d correlationId %d\n", 
-			  phase, 
+	  printf("Phase %s SYNC %s [ %llu, %llu ] contextId %d streamID %d cudaEventId %d correlationId %d\n",
+			  phase,
 			  get_sync_events_string(activity_sync->type),
 			  (unsigned long long) activity_sync->start - start_timestamp,
 			  (unsigned long long) activity_sync->end - start_timestamp,
@@ -264,10 +264,10 @@ static void OnDriverApiEnter(CUpti_CallbackDomain domain, CUpti_driver_api_trace
 	if (cuptiDeviceGetTimestamp(cbdata->context, &tsc) == CUPTI_SUCCESS){
 		printf("Enter API callback %llu %s %s \n", (unsigned long long) tsc-start_timestamp, cbdata->symbolName, cbdata->functionName);
 	}
-	//CUpti_driver_api_trace_cbid cbid_new = (CUpti_driver_api_trace_cbid) cbid; 
+	//CUpti_driver_api_trace_cbid cbid_new = (CUpti_driver_api_trace_cbid) cbid;
         printf("cbid %d", cbid);
 	switch (cbid) {
-	case CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel: 
+	case CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel:
 		{
 			printf("symbolName %s correlationID %d\n", cbdata->symbolName, cbdata->correlationId);
 			break;
@@ -279,7 +279,7 @@ static void OnDriverApiEnter(CUpti_CallbackDomain domain, CUpti_driver_api_trace
 	    break;
      	    }
 	}
-	
+
         /***
         // libunwind variables
 	unw_word_t ip;
@@ -309,7 +309,7 @@ static void OnDriverApiExit(CUpti_CallbackDomain domain, CUpti_CallbackId cbid, 
 {
 	uint64_t tsc;
 	if (cuptiDeviceGetTimestamp(cbdata->context, &tsc) == CUPTI_SUCCESS){
-		printf("Exit API callback %llu %s %s \n", (unsigned long long) tsc-start_timestamp, cbdata->symbolName, cbdata->functionName);		
+		printf("Exit API callback %llu %s %s \n", (unsigned long long) tsc-start_timestamp, cbdata->symbolName, cbdata->functionName);
         }
 }
 
@@ -345,15 +345,15 @@ initTrace()
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMSET));
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_NAME));
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MARKER));
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));  
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION)); 
+  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));
+  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION));
 //  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_PC_SAMPLING));
 
   // register callback
 //  CUPTI_CALL(cuptiSubscribe(&subscriber, (CUpti_CallbackFunc)trace_callback, NULL));
 //  CUPTI_CALL(cuptiEnableDomain(1, subscriber,  CUPTI_CB_DOMAIN_RUNTIME_API));
-//  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OVERHEAD))  
-//  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_FUNCTION)); 
+//  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OVERHEAD))
+//  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_FUNCTION));
 //  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SOURCE_LOCATOR));
 //  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INSTRUCTION_EXECUTION));
 //  Register callbacks for buffer requests and for buffers completed by CUPTI.
@@ -379,4 +379,3 @@ void finiTrace()
    CUPTI_CALL(cuptiActivityFlushAll(1));
   // CUPTI_CALL(cuptiUnsubscribe(subscriber));
 }
-

@@ -6,8 +6,9 @@ from torchvision import datasets, models, transforms
 import smprofiler
 
 transform = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Resize(256),   
+    [
+     transforms.Resize(256),
+     transforms.ToTensor(),
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
@@ -23,11 +24,13 @@ optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
 for epoch in range(3):  # loop over the dataset multiple times
     for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
+
         inputs, labels = data
+        smprofiler.start("tensor_copy")
         inputs = inputs.to('cuda')
         labels = labels.to('cuda')
-        
+        smprofiler.stop()
+
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -35,13 +38,15 @@ for epoch in range(3):  # loop over the dataset multiple times
         smprofiler.start("forward")
         outputs = net(inputs)
         smprofiler.stop()
-            
+
+        smprofiler.start("loss")
         loss = criterion(outputs, labels)
-            
+        smprofiler.stop()
+
         smprofiler.start("backward")
         loss.backward()
         smprofiler.stop()
 
+        smprofiler.start("optimizer")
         optimizer.step()
-
-
+        smprofiler.stop()
