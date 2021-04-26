@@ -14,39 +14,20 @@ nvcc -c --ptxas-options=-v --compiler-options '-fPIC'  -I./include/ -I../../../.
 nvcc -shared smprofiler.o smprofiler_timeline.o perf_collector.o -L /usr/lib/x86_64-linux-gnu/ -lunwind -L ../../lib64  -lcuda -L ../../../../lib64 -lcupti -I../../../../include -I../../include -I/usr/include/python3.6/ -o smprofiler.so
 ```
 
-#### Run the tool
+#### Run the training with smprofiler
 
 To run the tool, just import the python module into your training script and start the profiler.
-```
+``` python
 import smprofiler
 
-for epoch in range(1):
-      for i, data in enumerate(trainloader, 0):
-
-          inputs, labels = data
-          smprofiler.start('tensor copy')
-          inputs = inputs.to('cuda')
-          labels = labels.to('cuda')
-          smprofiler.stop()
-
-
-          optimizer.zero_grad()
-
-          smprofiler.start("forward")
-          outputs = net(inputs)
-          smprofiler.stop()
-
-          smprofiler.start("loss")
-          loss = criterion(outputs, labels)
-          smprofiler.stop()
-
-          smprofiler.start("backward")
-          loss.backward()
-          smprofiler.stop()
-
-          smprofiler.start("otpimizer")
-          optimizer.step()
-          smprofiler.stop()
+smprofiler.start("forward")
+outputs = net(inputs)
+smprofiler.stop()
 
 ```
 For an example check out ![train.py](https://github.com/NRauschmayr/cupti-tracer/blob/main/train.py)
+
+#### Inspect results
+The tracing tool will generate an output json file that you can import into Chrome trace viewer to generate a timeline view. Each row in the timeline will correspond to the custom annotation which were specified in the training script.
+
+![](images/timeline-view.png)
