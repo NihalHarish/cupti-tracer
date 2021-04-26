@@ -20,18 +20,18 @@ To run the tool, just import the python module into your training script and sta
 ```
 import smprofiler
 
-for epoch in range(1):  
+for epoch in range(1):
       for i, data in enumerate(trainloader, 0):
-         
+
           inputs, labels = data
           smprofiler.start('tensor copy')
           inputs = inputs.to('cuda')
           labels = labels.to('cuda')
           smprofiler.stop()
-          
-         
+
+
           optimizer.zero_grad()
-          
+
           smprofiler.start("forward")
           outputs = net(inputs)
           smprofiler.stop()
