@@ -1,3 +1,6 @@
+#include <cuda.h>
+#include <cupti.h>
+
 static const char * get_memcopy_events_string (CUpti_ActivityMemcpyKind kind)
 {
   switch (kind) {

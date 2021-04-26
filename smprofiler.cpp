@@ -6,15 +6,15 @@ static uint64_t perf_start[2];
 
 static PyObject* start(PyObject * self, PyObject * args)
 {
+  char* phase;
   if (!PyArg_Parse(args, "s", &phase))
         return NULL;
-  printf("Phase %s\n", phase);
 
   //start perf collection
-  perf_init();
+  perf_init();//char* phase);
 
   //start cupti tracer
-  initTrace();
+  cupti_tracer_init(phase);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -23,7 +23,7 @@ static PyObject* start(PyObject * self, PyObject * args)
 static PyObject* stop(PyObject * self, PyObject * args)
 {
   // finalize cupti tracer
-  finiTrace();
+  cupti_tracer_close();
 
   // finalize perf collection
   perf_close();
