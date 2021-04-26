@@ -18,11 +18,33 @@ nvcc -shared smprofiler.o smprofiler_timeline.o perf_collector.o -L /usr/lib/x86
 
 To run the tool, just import the python module into your training script and start the profiler.
 ```
-import smprofiler
+for epoch in range(1):  
+      for i, data in enumerate(trainloader, 0):
+         
+          inputs, labels = data
+          smprofiler.start('tensor copy')
+          inputs = inputs.to('cuda')
+          labels = labels.to('cuda')
+          smprofiler.stop()
+          
+         
+          optimizer.zero_grad()
+          
+          smprofiler.start("forward")
+          outputs = net(inputs)
+          smprofiler.stop()
 
-smprofiler.start('training')
+          smprofiler.start("loss")
+          loss = criterion(outputs, labels)
+          smprofiler.stop()
 
-smprofiler.stop()
+          smprofiler.start("backward")
+          loss.backward()
+          smprofiler.stop()
+
+          smprofiler.start("otpimizer")
+          optimizer.step()
+          smprofiler.stop()
 
 ```
 For an example check out ![train.py](https://github.com/NRauschmayr/cupti-tracer/blob/main/train.py)
