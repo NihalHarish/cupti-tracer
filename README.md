@@ -18,6 +18,8 @@ nvcc -shared smprofiler.o smprofiler_timeline.o perf_collector.o -L /usr/lib/x86
 
 To run the tool, just import the python module into your training script and start the profiler.
 ```
+import smprofiler
+
 for epoch in range(1):  
       for i, data in enumerate(trainloader, 0):
          
