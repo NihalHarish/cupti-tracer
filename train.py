@@ -22,7 +22,7 @@ net = net.to('cuda')
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
-for epoch in range(1)
+for epoch in range(1):
     for i, data in enumerate(trainloader, 0):
 
         inputs, labels = data

@@ -11,7 +11,7 @@ static PyObject* start(PyObject * self, PyObject * args)
         return NULL;
 
   //start perf collection
-  perf_init();//char* phase);
+  perf_init(phase);
 
   //start cupti tracer
   cupti_tracer_init(phase);

@@ -402,6 +402,9 @@ void Timeline::SMRecordEvent(const std::string training_phase,
   ss.append(std::to_string(getpid()));
   ss.append(", \"thread_id\":");
   ss.append(std::to_string(threadid));
+
+  if(args.size() > 1)
+        ss.append(args);
   //writer_->EnqueueWriteEvent(training_phase, event_type, op_name, ss,
   //                           rel_ts_micros, threadid, pid, duration);
   writer_->EnqueueWriteEvent(training_phase, event_type, op_name, ss, start_ts-start_time_, threadid, pid, duration);
